@@ -4,12 +4,9 @@ import Dict exposing (Dict)
 import Json.Decode
 import Json.Encode
 import Lamdera exposing (ClientId, SessionId)
+import List.Extra
 import Serialize exposing (decodeUsers, encodeUsers)
 import Types exposing (..)
-
-
-type alias Model =
-    BackendModel
 
 
 app =
@@ -21,7 +18,7 @@ app =
         }
 
 
-init : ( Model, Cmd BackendMsg )
+init : ( BackendModel, Cmd BackendMsg )
 init =
     let
         buildEvaluations =
@@ -64,14 +61,14 @@ init =
     )
 
 
-update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
+update : BackendMsg -> BackendModel -> ( BackendModel, Cmd BackendMsg )
 update msg model =
     case msg of
         NoOpBackendMsg ->
             ( model, Cmd.none )
 
 
-updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
+updateFromFrontend : SessionId -> ClientId -> ToBackend -> BackendModel -> ( BackendModel, Cmd BackendMsg )
 updateFromFrontend sessionId clientId msg model =
     case msg of
         NoOpToBackend ->
@@ -89,39 +86,31 @@ updateFromFrontend sessionId clientId msg model =
             )
 
         SaveEvaluation name id evaluation ->
-            let
-                maybeUser =
-                    model.users
-                        |> List.filter (\a -> a.name == name)
-                        |> List.head
+            case List.Extra.find (\u -> u.name == name) model.users of
+                Just user ->
+                    let
+                        newEvals =
+                            if Dict.member id user.evaluations then
+                                Dict.insert id evaluation user.evaluations
 
-                evaluations =
-                    maybeUser
-                        |> Maybe.map .evaluations
-                        |> Maybe.map
-                            (Dict.map
-                                (\k v ->
-                                    if k == id then
-                                        evaluation
+                            else
+                                user.evaluations
+
+                        newUsers =
+                            List.map
+                                (\u ->
+                                    if u.name == name then
+                                        { u | evaluations = newEvals }
 
                                     else
-                                        v
+                                        u
                                 )
-                            )
-                        |> Maybe.withDefault Dict.empty
+                                model.users
+                    in
+                    ( { model | users = newUsers }, Cmd.none )
 
-                users =
-                    model.users
-                        |> List.map
-                            (\a ->
-                                if a.name == name then
-                                    { a | evaluations = evaluations }
-
-                                else
-                                    a
-                            )
-            in
-            ( { model | users = users }, Cmd.none )
+                Nothing ->
+                    ( model, Cmd.none )
 
         GetJsonString ->
             let

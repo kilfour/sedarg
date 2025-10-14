@@ -5,7 +5,6 @@ import Browser.Navigation exposing (Key)
 import Dict exposing (Dict)
 import File exposing (File)
 import Grade exposing (Grade)
-import Set exposing (Set)
 import Url exposing (Url)
 
 
@@ -52,7 +51,6 @@ type alias User =
 type alias FrontendModel =
     { key : Key
     , selected : Maybe Exercise
-    , expanded : Set Int
     , user : Maybe User
     , pass : String
     }
@@ -73,7 +71,6 @@ type FrontendMsg
     | Login
     | UpdatePass String
     | SelectExercise Int
-    | ToggleExpand Int
     | SetClarity Grade
     | SetUsefulness Grade
     | SetFun Grade
