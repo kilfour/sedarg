@@ -40,9 +40,7 @@ updateFromFrontend sessionId clientId msg model =
         LoggedOn pass ->
             let
                 user =
-                    model.users
-                        |> List.filter (\a -> a.pass == pass)
-                        |> List.head
+                    List.Extra.find (\a -> a.pass == pass) model.users
             in
             ( model
             , Lamdera.sendToFrontend clientId <| GotUser user
