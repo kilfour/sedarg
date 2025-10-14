@@ -1,0 +1,456 @@
+:root {
+    --accent: #0077cc;
+    --ink: #111;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --hover: #f5f7fb;
+    --sel-bg: #e9f3ff;
+}
+
+
+.layout {
+    display: flex;
+    height: 100vh;
+    font-family: system-ui, sans-serif;
+}
+
+.master {
+    width: 35%;
+    overflow-y: auto;
+    border-right: 1px solid #ccc;
+    padding: 1rem;
+}
+
+.detail {
+    flex-grow: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+/* ------- Tree list: cleaner, clickable, with connectors ------- */
+
+/* Reset + base tree spacing */
+ul.exercises {
+    list-style: none;
+    margin: 0;
+    padding-left: .5rem;
+    font-size: small;
+}
+
+/* Connector line for nested lists */
+ul.exercises ul.exercises {
+    margin-left: .5rem;
+    padding-left: .75rem;
+    border-left: 1px solid var(--line);
+}
+
+/* Item spacing */
+.exercise {
+    margin: 2px 0;
+}
+
+/* Clickable row */
+.exercise-btn {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    font: inherit;
+    white-space: nowrap;
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+/* Hover + focus */
+.exercise-btn:hover {
+    background-color: var(--hover);
+}
+
+.exercise-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 70%);
+}
+
+/* Selected state */
+.exercise.selected>.exercise-btn {
+    background: var(--sel-bg);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 0 var(--accent);
+}
+
+/* Subtle branch tee for each item */
+.exercise {
+    position: relative;
+}
+
+.exercise::before {
+    content: "";
+    position: absolute;
+    left: -0.75rem;
+    /* aligns with nested border-left */
+    top: 1.2em;
+    width: .75rem;
+    height: 1px;
+    background: var(--line);
+    /* horizontal connector */
+}
+
+/* Caret for nodes that have children (always open) */
+.exercise:has(> ul.exercises)>.exercise-btn::before {
+    content: "▾";
+    display: inline-block;
+    margin-right: .4rem;
+    font-size: .85em;
+    color: var(--muted);
+    translate: 0 -1px;
+}
+
+/* Leaf bullet for items without children */
+.exercise:not(:has(> ul.exercises))>.exercise-btn::before {
+    content: "•";
+    display: inline-block;
+    margin-right: .5rem;
+    color: var(--muted);
+}
+
+/* Optional: tighten selected descendants’ connector color */
+.exercise.selected+ul.exercises {
+    border-left-color: color-mix(in oklab, var(--accent), white 70%);
+}
+
+
+.grades {
+    user-select: none;
+}
+
+.grade-value {
+    padding-left: 8px;
+}
+
+.grade {
+    border: 1px solid black;
+    display: inline-block;
+    text-align: center;
+    padding-bottom: 2px;
+    width: 25px;
+    color: black;
+}
+
+.grade.plus,
+.grade.min {
+    width: 15px;
+}
+
+.grade.filled {
+    color: white;
+}
+
+.grade:hover {
+    background-color: var(--muted)
+}
+
+.grade.a.plus.filled {
+    background-color: hsl(130, 70%, 45%);
+}
+
+.grade.a.filled {
+    background-color: hsl(120, 65%, 42%);
+}
+
+.grade.a.min.filled {
+    background-color: hsl(110, 60%, 40%);
+}
+
+.grade.b.plus.filled {
+    background-color: hsl(95, 65%, 43%);
+}
+
+.grade.b.filled {
+    background-color: hsl(85, 65%, 42%);
+}
+
+.grade.b.min.filled {
+    background-color: hsl(75, 70%, 41%);
+}
+
+.grade.c.plus.filled {
+    background-color: hsl(60, 80%, 45%);
+}
+
+.grade.c.filled {
+    background-color: hsl(50, 80%, 45%);
+}
+
+.grade.c.min.filled {
+    background-color: hsl(45, 85%, 43%);
+}
+
+.grade.d.plus.filled {
+    background-color: hsl(35, 85%, 45%);
+}
+
+.grade.d.filled {
+    background-color: hsl(25, 85%, 42%);
+}
+
+.grade.d.min.filled {
+    background-color: hsl(15, 80%, 40%);
+}
+
+.grade.e.plus.filled {
+    background-color: hsl(10, 75%, 45%);
+}
+
+.grade.e.filled {
+    background-color: hsl(5, 80%, 40%);
+}
+
+.grade.e.min.filled {
+    background-color: hsl(0, 80%, 37%);
+}
+
+.grade.f.plus.filled {
+    background-color: hsl(0, 75%, 40%);
+}
+
+.grade.f.filled {
+    background-color: hsl(355, 75%, 36%);
+}
+
+.grade.f.min.filled {
+    background-color: hsl(350, 80%, 32%);
+}
+
+.grade.undecided.filled {
+    background-color: var(--muted);
+}
+
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    translate: 0px 1px;
+    border-radius: 50%;
+    top: 5px;
+    border: 1px solid var(--muted);
+    margin-right: 2px;
+}
+
+.dot.a.plus.filled {
+    background-color: hsl(130, 70%, 45%);
+}
+
+.dot.a.filled {
+    background-color: hsl(120, 65%, 42%);
+}
+
+.dot.a.min.filled {
+    background-color: hsl(110, 60%, 40%);
+}
+
+.dot.b.plus.filled {
+    background-color: hsl(95, 65%, 43%);
+}
+
+.dot.b.filled {
+    background-color: hsl(85, 65%, 42%);
+}
+
+.dot.b.min.filled {
+    background-color: hsl(75, 70%, 41%);
+}
+
+.dot.c.plus.filled {
+    background-color: hsl(60, 80%, 45%);
+}
+
+.dot.c.filled {
+    background-color: hsl(50, 80%, 45%);
+}
+
+.dot.c.min.filled {
+    background-color: hsl(45, 85%, 43%);
+}
+
+.dot.d.plus.filled {
+    background-color: hsl(35, 85%, 45%);
+}
+
+.dot.d.filled {
+    background-color: hsl(25, 85%, 42%);
+}
+
+.dot.d.min.filled {
+    background-color: hsl(15, 80%, 40%);
+}
+
+.dot.e.plus.filled {
+    background-color: hsl(10, 75%, 45%);
+}
+
+.dot.e.filled {
+    background-color: hsl(5, 80%, 40%);
+}
+
+.dot.e.min.filled {
+    background-color: hsl(0, 80%, 37%);
+}
+
+.dot.f.plus.filled {
+    background-color: hsl(0, 75%, 40%);
+}
+
+.dot.f.filled {
+    background-color: hsl(355, 75%, 36%);
+}
+
+.dot.f.min.filled {
+    background-color: hsl(350, 80%, 32%);
+}
+
+.dot.undecided.filled {
+    background-color: var(--muted);
+}
+
+input[type="text"],
+textarea {
+    width: 80%;
+    padding: 10px 12px;
+    border-radius: 15px;
+    border: 1px solid black;
+    outline: none;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+textarea {
+    min-height: 50px;
+    resize: vertical;
+}
+
+input:focus,
+textarea:focus {
+    border-color: color-mix(in oklab, #6ea8ff, white 12%);
+    box-shadow: 0 0 0 3px color-mix(in oklab, #6ea8ff, transparent 80%);
+}
+
+/* Base heading rhythm */
+.layout h1,
+.layout h2,
+.layout h3,
+.layout h4,
+.layout h5,
+.layout h6 {
+    margin: 0 0 .6rem 0;
+    line-height: 1.2;
+    color: var(--ink);
+    font-weight: 600;
+}
+
+/* Sizes (tuned for master/detail panes) */
+.layout h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.layout h2 {
+    font-size: 1.375rem;
+}
+
+.layout h3 {
+    font-size: 1.125rem;
+}
+
+.layout h4 {
+    font-size: 1rem;
+}
+
+.layout h5 {
+    font-size: .95rem;
+    color: var(--muted);
+}
+
+.layout h6 {
+    font-size: .9rem;
+    color: var(--muted);
+}
+
+/* Detail: accent title with subtle underline */
+.detail h1 {
+    color: var(--accent);
+    padding-bottom: .25rem;
+    background-image: linear-gradient(to right,
+            color-mix(in oklab, var(--accent), white 20%),
+            color-mix(in oklab, var(--accent), transparent 60%));
+    background-size: 100% 2px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+}
+
+/* Section dividers in detail */
+.detail h2 {
+    border-bottom: 1px solid color-mix(in oklab, var(--accent), transparent 75%);
+    padding-bottom: .2rem;
+}
+
+/* Master list headers: compact + muted */
+.master h1 {
+    font-size: 1.25rem;
+    color: var(--accent);
+}
+
+.master h2 {
+    font-size: 1.05rem;
+    color: var(--muted);
+}
+
+.master h3,
+.master h4,
+.master h5,
+.master h6 {
+    font-size: .95rem;
+    color: var(--muted);
+}
+
+/* Optional: spacing before sections in detail */
+.detail h2,
+.detail h3 {
+    margin-top: 1.1rem;
+}
+
+a {
+    color: #007bff;
+    text-decoration: none;
+    position: relative;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 0;
+    height: 2px;
+    background: currentColor;
+    transition: width 0.2s ease;
+}
+
+a:hover {
+    color: #0056b3;
+    /* slightly darker on hover */
+}
+
+a:hover::after {
+    width: 100%;
+}
+
+/* disable visited color change */
+a:visited {
+    color: #007bff;
+}
