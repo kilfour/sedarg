@@ -3,15 +3,19 @@ module Frontend exposing (..)
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Nav
 import Dict exposing (Dict)
-import Evaluation exposing (..)
 import ExerciseList
+import File exposing (File)
+import File.Download as Download
+import File.Select as Select
 import Grade exposing (..)
 import Html exposing (..)
 import Html.Attributes as Attr exposing (class)
-import Html.Events exposing (onClick, onInput, onMouseOver)
+import Html.Events as Evts exposing (onClick, onInput, onMouseOver)
+import Json.Decode as Decode
 import Lamdera
 import List.Extra
 import Set exposing (Set)
+import Task
 import Types exposing (..)
 import Url
 
@@ -32,26 +36,13 @@ app =
         }
 
 
-demoUser : User
-demoUser =
-    { name = "Demo"
-    , pass = "demo"
-    , evaluations = buildEvaluations
-    }
-
-
-buildEvaluations =
-    List.range 1 61
-        |> List.map (\a -> ( a, emptyEvaluation ))
-        |> Dict.fromList
-
-
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     ( { key = key
       , selected = Nothing
       , expanded = Set.fromList []
-      , user = demoUser
+      , user = Nothing
+      , pass = ""
       }
     , Cmd.none
     )
@@ -75,8 +66,23 @@ update msg model =
         UrlChanged url ->
             ( model, Cmd.none )
 
-        NoOpFrontendMsg ->
-            ( model, Cmd.none )
+        LoadFile ->
+            ( model, Select.file [ "application/json" ] FileSelected )
+
+        FileSelected file ->
+            ( model, Task.perform FileLoaded (File.toString file) )
+
+        FileLoaded content ->
+            ( model, Lamdera.sendToBackend <| UploadData content )
+
+        StartDownload ->
+            ( model, Lamdera.sendToBackend GetJsonString )
+
+        UpdatePass str ->
+            ( { model | pass = str }, Cmd.none )
+
+        Login ->
+            ( model, Lamdera.sendToBackend <| LoggedOn model.pass )
 
         SelectExercise id ->
             let
@@ -97,69 +103,59 @@ update msg model =
             ( { model | expanded = newExpanded }, Cmd.none )
 
         SetClarity grade ->
-            let
-                user =
-                    updateSelectedEvaluation model (\a -> { a | clarity = Just grade })
-            in
-            ( { model | user = user }, Cmd.none )
+            updateSelectedEvaluation model (\a -> { a | clarity = Just grade })
 
         SetUsefulness grade ->
-            let
-                user =
-                    updateSelectedEvaluation model (\a -> { a | usefulness = Just grade })
-            in
-            ( { model | user = user }, Cmd.none )
+            updateSelectedEvaluation model (\a -> { a | usefulness = Just grade })
 
         SetFun grade ->
-            let
-                user =
-                    updateSelectedEvaluation model (\a -> { a | fun = Just grade })
-            in
-            ( { model | user = user }, Cmd.none )
+            updateSelectedEvaluation model (\a -> { a | fun = Just grade })
 
         EditTheGood str ->
-            let
-                user =
-                    updateSelectedEvaluation model (\a -> { a | theGood = str })
-            in
-            ( { model | user = user }, Cmd.none )
+            updateSelectedEvaluation model (\a -> { a | theGood = str })
 
         EditTheBad str ->
-            let
-                user =
-                    updateSelectedEvaluation model (\a -> { a | theBad = str })
-            in
-            ( { model | user = user }, Cmd.none )
+            updateSelectedEvaluation model (\a -> { a | theBad = str })
 
         EditTheUgly str ->
-            let
-                user =
-                    updateSelectedEvaluation model (\a -> { a | theUgly = str })
-            in
-            ( { model | user = user }, Cmd.none )
+            updateSelectedEvaluation model (\a -> { a | theUgly = str })
 
 
-updateSelectedEvaluation : Model -> (Evaluation -> Evaluation) -> User
+updateSelectedEvaluation : Model -> (Evaluation -> Evaluation) -> ( Model, Cmd FrontendMsg )
 updateSelectedEvaluation model func =
     let
         id =
             model.selected |> Maybe.map .id |> Maybe.withDefault 0
 
-        evaluations =
-            model.user.evaluations
-                |> Dict.map
-                    (\k a ->
-                        if k == id then
-                            func a
+        name =
+            model.user
+                |> Maybe.map .name
+                |> Maybe.withDefault ""
 
-                        else
-                            a
+        evaluations =
+            model.user
+                |> Maybe.map (\a -> a.evaluations)
+                |> Maybe.map
+                    (Dict.map
+                        (\k v ->
+                            if k == id then
+                                func v
+
+                            else
+                                v
+                        )
                     )
+                |> Maybe.withDefault Dict.empty
+
+        evaluation =
+            evaluations
+                |> Dict.get id
+                |> Maybe.withDefault emptyEvaluation
 
         user =
-            model.user
+            model.user |> Maybe.map (\a -> { a | evaluations = evaluations })
     in
-    { user | evaluations = evaluations }
+    ( { model | user = user }, Lamdera.sendToBackend <| SaveEvaluation name id evaluation )
 
 
 findExerciseById : Int -> Exercises -> Maybe Exercise
@@ -187,60 +183,94 @@ updateFromBackend msg model =
         NoOpToFrontend ->
             ( model, Cmd.none )
 
+        GotUser user ->
+            ( { model | user = user }, Cmd.none )
 
-emptyEvaluation : Evaluation
-emptyEvaluation =
-    { clarity = Nothing
-    , usefulness = Nothing
-    , fun = Nothing
-    , theGood = ""
-    , theBad = ""
-    , theUgly = ""
-    }
+        Download jsonString ->
+            ( model
+            , Download.string "course-evaluations.json" "application/json;charset=utf-8" jsonString
+            )
 
 
 view : Model -> Browser.Document FrontendMsg
 view model =
-    { title = "Exercises"
-    , body =
-        [ div [ class "layout" ]
+    { title = "sedarg"
+    , body = [ mainView model ]
+    }
+
+
+mainView : Model -> Html FrontendMsg
+mainView model =
+    case model.user of
+        Just user ->
+            authenticatedView model user
+
+        Nothing ->
+            loginView model
+
+
+loginView : Model -> Html FrontendMsg
+loginView model =
+    Html.div [ Attr.class "center-card" ]
+        [ Html.div [ Attr.class "login-card" ]
+            [ Html.input [ Attr.value model.pass, Evts.onInput UpdatePass, onEnter Login ] []
+            , Html.button [ Evts.onClick Login ] [ Html.text "Enter" ]
+            ]
+        ]
+
+
+authenticatedView : Model -> User -> Html FrontendMsg
+authenticatedView model user =
+    if user.name == "Coach" then
+        div []
+            [ h3 [] [ text user.name ]
+            , Html.button [ onClick StartDownload ] [ text "▼" ]
+            , Html.button [ onClick LoadFile ] [ text "▲" ]
+            ]
+
+    else
+        div [ class "layout" ]
             [ div [ class "master" ]
-                [ h3 [] [ text model.user.name ]
-                , viewExercisesSelectable model.user.evaluations ExerciseList.all model.selected
+                [ h3 [] [ text user.name ]
+                , viewExercisesSelectable user.evaluations ExerciseList.all model.selected
                 ]
             , div [ class "detail" ]
                 [ case model.selected of
                     Just ex ->
-                        let
-                            eval =
-                                Dict.get ex.id model.user.evaluations
-                                    |> Maybe.withDefault emptyEvaluation
-
-                            link =
-                                "https://github.com/becodeorg/GNT-2025-05-Dotnet/tree/main/TheCSharpPart/"
-                                    ++ ex.link
-                                    ++ "/readme.md"
-                        in
-                        div []
-                            [ h2 []
-                                [ text (ex.title ++ " : ")
-                                , Html.a
-                                    [ Attr.href link
-                                    , Attr.target "_blank"
-                                    , Attr.rel "noopener noreferrer"
+                        case Dict.get ex.id user.evaluations of
+                            Just eval ->
+                                let
+                                    link =
+                                        "https://github.com/becodeorg/GNT-2025-05-Dotnet/tree/main/TheCSharpPart/"
+                                            ++ ex.link
+                                            ++ "/readme.md"
+                                in
+                                div []
+                                    [ h2 []
+                                        [ text (ex.title ++ " : ")
+                                        , Html.a
+                                            [ Attr.href link
+                                            , Attr.target "_blank"
+                                            , Attr.rel "noopener noreferrer"
+                                            ]
+                                            [ text "README" ]
+                                        ]
+                                    , viewEvaluation eval
                                     ]
-                                    [ text "README" ]
-                                ]
-                            , viewEvaluation eval
-                            ]
+
+                            Nothing ->
+                                Html.text "Problem: evaluation not found."
 
                     Nothing ->
                         div [ class "placeholder" ]
                             [ text "Select an exercise to view its evaluation." ]
                 ]
             ]
-        ]
-    }
+
+
+summaryView : Model -> Html FrontendMsg
+summaryView model =
+    h3 [] [ text "Summary" ]
 
 
 viewExercisesSelectable : Dict Int Evaluation -> Exercises -> Maybe Exercise -> Html FrontendMsg
@@ -269,9 +299,16 @@ viewItem evaluations selected exercise =
                         ""
                    )
 
-        eval =
-            Dict.get exercise.id evaluations
-                |> Maybe.withDefault emptyEvaluation
+        commented str =
+            let
+                completeLabel =
+                    if String.isEmpty str then
+                        "_"
+
+                    else
+                        "✓"
+            in
+            span [] [ span [ class "comment" ] [ text completeLabel ] ]
 
         completion maybeGrade =
             let
@@ -287,6 +324,9 @@ viewItem evaluations selected exercise =
                 [ completion evaluation.clarity
                 , completion evaluation.usefulness
                 , completion evaluation.fun
+                , commented evaluation.theGood
+                , commented evaluation.theBad
+                , commented evaluation.theUgly
                 ]
 
         label =
@@ -301,11 +341,16 @@ viewItem evaluations selected exercise =
                     ul [ class "exercises" ]
                         (List.map (viewItem evaluations selected) xs)
     in
-    li [ class cssClass ]
-        [ button [ class "exercise-btn", onClick (SelectExercise exercise.id) ]
-            [ text label, getCompletion eval ]
-        , childrenView
-        ]
+    case Dict.get exercise.id evaluations of
+        Just eval ->
+            li [ class cssClass ]
+                [ button [ class "exercise-btn", onClick (SelectExercise exercise.id) ]
+                    [ text label, getCompletion eval ]
+                , childrenView
+                ]
+
+        Nothing ->
+            Html.text "Problem: evaluation not found."
 
 
 viewEvaluation : Evaluation -> Html FrontendMsg
@@ -371,3 +416,16 @@ section title content action =
         [ h3 [] [ text title ]
         , textarea [ Attr.value content, onInput action ] []
         ]
+
+
+onEnter : msg -> Html.Attribute msg
+onEnter msg =
+    let
+        isEnter key =
+            if key == "Enter" then
+                Decode.succeed msg
+
+            else
+                Decode.fail "Not Enter"
+    in
+    Evts.on "keydown" (Decode.field "key" Decode.string |> Decode.andThen isEnter)

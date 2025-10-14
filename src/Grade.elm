@@ -206,6 +206,67 @@ gradeToInt grade =
             -1
 
 
+intToGrade : Int -> Grade
+intToGrade n =
+    case n of
+        18 ->
+            APlus
+
+        17 ->
+            A
+
+        16 ->
+            AMinus
+
+        15 ->
+            BPlus
+
+        14 ->
+            B
+
+        13 ->
+            BMinus
+
+        12 ->
+            CPlus
+
+        11 ->
+            C
+
+        10 ->
+            CMinus
+
+        9 ->
+            DPlus
+
+        8 ->
+            D
+
+        7 ->
+            DMinus
+
+        6 ->
+            EPlus
+
+        5 ->
+            E
+
+        4 ->
+            EMinus
+
+        3 ->
+            FPlus
+
+        2 ->
+            F
+
+        1 ->
+            FMinus
+
+        _ ->
+            Undecided
+
+
 gradeClass : Grade -> String
 gradeClass grade =
     case grade of
