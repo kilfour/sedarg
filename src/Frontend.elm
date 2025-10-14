@@ -103,22 +103,7 @@ update msg model =
             ( model, Lamdera.sendToBackend <| LoggedOn model.pass )
 
         SelectExercise id ->
-            let
-                findExerciseById id_ (Exercises exercises) =
-                    List.Extra.findMap
-                        (\ex ->
-                            if ex.id == id_ then
-                                Just ex
-
-                            else
-                                findExerciseById id_ ex.children
-                        )
-                        exercises
-
-                selected =
-                    findExerciseById id ExerciseList.all
-            in
-            ( { model | selected = selected }, Cmd.none )
+            ( { model | selected = Dict.get id ExerciseList.index }, Cmd.none )
 
         SetClarity grade ->
             updateSelectedEvaluation (\a -> { a | clarity = Just grade })

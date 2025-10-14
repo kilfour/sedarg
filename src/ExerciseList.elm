@@ -1,5 +1,6 @@
-module ExerciseList exposing (all)
+module ExerciseList exposing (all, index)
 
+import Dict exposing (Dict)
 import Types exposing (Exercise, Exercises(..))
 
 
@@ -92,3 +93,12 @@ all =
                 ]
         , Exercise 61 "20.Katas" "20.Katas/" (Exercises [])
         ]
+
+
+index : Dict Int Exercise
+index =
+    let
+        flatten (Exercises xs) =
+            List.concatMap (\e -> e :: flatten e.children) xs
+    in
+    flatten all |> List.foldl (\e d -> Dict.insert e.id e d) Dict.empty

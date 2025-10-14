@@ -4,5 +4,5 @@ module Env exposing (..)
 -- See https://dashboard.lamdera.app/docs/environment for more info.
 
 
-dummyConfigItem =
-  ""
+githubUrl =
+    "https://github.com/becodeorg/GNT-2025-05-Dotnet/tree/main/TheCSharpPart/"

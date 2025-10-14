@@ -1,6 +1,7 @@
 module UIEvaluation exposing (view)
 
 import Dict
+import Env
 import Grade exposing (..)
 import Html exposing (..)
 import Html.Attributes as Attr
@@ -11,27 +12,10 @@ import Types exposing (..)
 view : FrontendModel -> User -> Html FrontendMsg
 view model user =
     case model.selected of
-        Just ex ->
-            case Dict.get ex.id user.evaluations of
+        Just exercise ->
+            case Dict.get exercise.id user.evaluations of
                 Just eval ->
-                    let
-                        link =
-                            "https://github.com/becodeorg/GNT-2025-05-Dotnet/tree/main/TheCSharpPart/"
-                                ++ ex.link
-                                ++ "/readme.md"
-                    in
-                    div []
-                        [ h2 []
-                            [ text (ex.title ++ " : ")
-                            , Html.a
-                                [ Attr.href link
-                                , Attr.target "_blank"
-                                , Attr.rel "noopener noreferrer"
-                                ]
-                                [ text "README" ]
-                            ]
-                        , evaluationView eval
-                        ]
+                    evaluationView exercise eval
 
                 Nothing ->
                     Html.text "Problem: evaluation not found."
@@ -41,20 +25,30 @@ view model user =
                 [ text "Select an exercise to view its evaluation." ]
 
 
-evaluationView : Evaluation -> Html FrontendMsg
-evaluationView eval =
-    div [ Attr.class "evaluation" ]
-        [ table [ Attr.class "grades" ]
-            [ thead [] [ tr [] [ th [] [ text "Aspect" ], th [] [ text "Grade" ] ] ]
-            , tbody []
-                [ viewGradeRow "Clarity" eval.clarity SetClarity
-                , viewGradeRow "Usefulness" eval.usefulness SetUsefulness
-                , viewGradeRow "Fun" eval.fun SetFun
-                ]
+evaluationView : Exercise -> Evaluation -> Html FrontendMsg
+evaluationView exercise eval =
+    let
+        link =
+            Env.githubUrl ++ exercise.link ++ "/readme.md"
+    in
+    div []
+        [ h2 []
+            [ text (exercise.title ++ " : ")
+            , Html.a [ Attr.href link, Attr.target "_blank", Attr.rel "noopener noreferrer" ] [ text "README" ]
             ]
-        , section "The Good" eval.theGood EditTheGood
-        , section "The Bad" eval.theBad EditTheBad
-        , section "The Ugly" eval.theUgly EditTheUgly
+        , div [ Attr.class "evaluation" ]
+            [ table [ Attr.class "grades" ]
+                [ thead [] [ tr [] [ th [] [ text "Aspect" ], th [] [ text "Grade" ] ] ]
+                , tbody []
+                    [ viewGradeRow "Clarity" eval.clarity SetClarity
+                    , viewGradeRow "Usefulness" eval.usefulness SetUsefulness
+                    , viewGradeRow "Fun" eval.fun SetFun
+                    ]
+                ]
+            , section "The Good" eval.theGood EditTheGood
+            , section "The Bad" eval.theBad EditTheBad
+            , section "The Ugly" eval.theUgly EditTheUgly
+            ]
         ]
 
 

@@ -7,6 +7,7 @@ import Lamdera exposing (ClientId, SessionId)
 import List.Extra
 import Serialize exposing (decodeUsers, encodeUsers)
 import Types exposing (..)
+import Users
 
 
 app =
@@ -20,45 +21,7 @@ app =
 
 init : ( BackendModel, Cmd BackendMsg )
 init =
-    let
-        buildEvaluations =
-            List.range 1 61
-                |> List.map (\a -> ( a, emptyEvaluation ))
-                |> Dict.fromList
-    in
-    ( { users =
-            [ { name = "Abigail"
-              , pass = "creative-in-pink"
-              , evaluations = buildEvaluations
-              }
-            , { name = "Alex"
-              , pass = "tenacious-poker"
-              , evaluations = buildEvaluations
-              }
-            , { name = "Mathias"
-              , pass = "inquisitive-sigh"
-              , evaluations = buildEvaluations
-              }
-            , { name = "Michael"
-              , pass = "yes-no-cava"
-              , evaluations = buildEvaluations
-              }
-            , { name = "Naomi"
-              , pass = "footless-structure"
-              , evaluations = buildEvaluations
-              }
-            , { name = "Demo"
-              , pass = "demo"
-              , evaluations = buildEvaluations
-              }
-            , { name = "Coach"
-              , pass = "elmsy"
-              , evaluations = Dict.empty
-              }
-            ]
-      }
-    , Cmd.none
-    )
+    ( { users = Users.list }, Cmd.none )
 
 
 update : BackendMsg -> BackendModel -> ( BackendModel, Cmd BackendMsg )
@@ -97,14 +60,9 @@ updateFromFrontend sessionId clientId msg model =
                                 user.evaluations
 
                         newUsers =
-                            List.map
-                                (\u ->
-                                    if u.name == name then
-                                        { u | evaluations = newEvals }
-
-                                    else
-                                        u
-                                )
+                            List.Extra.updateIf
+                                (\a -> a.name == name)
+                                (\a -> { a | evaluations = newEvals })
                                 model.users
                     in
                     ( { model | users = newUsers }, Cmd.none )
